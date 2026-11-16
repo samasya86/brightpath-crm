@@ -8,6 +8,7 @@ export interface CardProps {
   footer?: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  hoverLift?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -18,10 +19,13 @@ export const Card: React.FC<CardProps> = ({
   footer,
   className = '',
   bodyClassName = 'p-6',
+  hoverLift = false,
 }) => {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden transition-all ${className}`}
+      className={`bg-white rounded-xl border border-slate-200/90 ring-1 ring-black/[0.02] shadow-xs overflow-hidden transition-all duration-200 ease-out ${
+        hoverLift ? 'hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300' : ''
+      } ${className}`}
     >
       {(title || headerAction) && (
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
@@ -42,7 +46,7 @@ export const Card: React.FC<CardProps> = ({
       <div className={bodyClassName}>{children}</div>
 
       {footer && (
-        <div className="px-6 py-3 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
           {footer}
         </div>
       )}

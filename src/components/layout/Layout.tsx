@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { Database, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileNav } from './MobileNav';
+import { ConfigurationNotice } from '../common/ConfigurationNotice';
+import { isSupabaseConfigured } from '../../lib/supabaseClient';
 
 export const Layout: React.FC = () => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const location = useLocation();
 
-  // Route metadata mapping
   const getRouteMeta = (pathname: string): { title: string; subtitle: string } => {
     if (pathname === '/') {
       return {
@@ -70,6 +73,24 @@ export const Layout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Subtle Top Configuration Alert Strip (Non-intrusive) */}
+        {!isSupabaseConfigured && (
+          <div
+            onClick={() => setIsConfigModalOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 text-xs font-medium flex items-center justify-between transition-colors cursor-pointer select-none shadow-xs"
+          >
+            <div className="flex items-center gap-2 max-w-4xl mx-auto truncate">
+              <AlertTriangle className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+              <span className="truncate">
+                Supabase database keys not detected in <code>.env</code>. Running in UI preview mode.
+              </span>
+            </div>
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider shrink-0 underline ml-2">
+              Setup Guide <ArrowRight className="w-3 h-3" />
+            </span>
+          </div>
+        )}
+
         <Header
           onOpenMobileNav={() => setIsMobileNavOpen(true)}
           title={meta.title}
@@ -77,12 +98,18 @@ export const Layout: React.FC = () => {
           role="counsellor"
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 animate-in fade-in duration-200">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
+
+      {/* Configuration Modal */}
+      <ConfigurationNotice
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+      />
     </div>
   );
 };
