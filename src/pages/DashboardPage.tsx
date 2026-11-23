@@ -5,231 +5,154 @@ import {
   CheckCircle2,
   AlertCircle,
   Percent,
-  TrendingUp,
-  ArrowRight,
   Plus,
+  Loader2,
 } from 'lucide-react';
-import { Card } from '../components/common/Card';
-import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
-import { Modal } from '../components/common/Modal';
-import { Link } from 'react-router-dom';
+import { Badge } from '../components/common/Badge';
+import { KpiCard } from '../features/dashboard/KpiCard';
+import { StatusDistribution } from '../features/dashboard/StatusDistribution';
+import { SourceDistribution } from '../features/dashboard/SourceDistribution';
+import { RecentLeadsWidget } from '../features/dashboard/RecentLeadsWidget';
+import { UrgentFollowupsWidget } from '../features/dashboard/UrgentFollowupsWidget';
+import { LeadModal } from '../features/leads/LeadModal';
+import { useMetrics } from '../hooks/useMetrics';
+import { useAuth } from '../hooks/useAuth';
+import { useLeads } from '../hooks/useLeads';
+import type { CreateLeadInput } from '../services/leadsService';
 
 export const DashboardPage: React.FC = () => {
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const { kpis, statusDistribution, sourceDistribution, recentLeads, urgentFollowups, isLoading, error, refetch } = useMetrics();
+  const { profile, user, role } = useAuth();
+  const { staffProfiles, createLead } = useLeads();
+  const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
 
-  // Demo KPI metrics for Phase 1 visual preview
-  const demoKpis = [
-    {
-      title: 'Total Enquiries',
-      value: '24',
-      change: '+12% this month',
-      icon: Users,
-      iconBg: 'bg-indigo-50 text-indigo-600',
-    },
-    {
-      title: 'New Leads',
-      value: '8',
-      change: 'Needs first contact',
-      icon: UserPlus,
-      iconBg: 'bg-blue-50 text-blue-600',
-    },
-    {
-      title: 'Converted Admissions',
-      value: '6',
-      change: 'Enrolled students',
-      icon: CheckCircle2,
-      iconBg: 'bg-emerald-50 text-emerald-600',
-    },
-    {
-      title: 'Overdue Follow-ups',
-      value: '3',
-      change: 'Action required now',
-      icon: AlertCircle,
-      iconBg: 'bg-rose-50 text-rose-600',
-      urgent: true,
-    },
-    {
-      title: 'Conversion Rate',
-      value: '25.0%',
-      change: 'Goal: >20%',
-      icon: Percent,
-      iconBg: 'bg-purple-50 text-purple-600',
-    },
-  ];
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Counsellor';
+
+  const handleCreateLead = async (input: CreateLeadInput) => {
+    await createLead(input);
+    refetch();
+  };
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Welcome & Quick Action Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border border-slate-800">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Badge variant="blue" size="sm">Phase 1 Layout Active</Badge>
-            <span className="text-xs text-slate-300">BrightPath Coaching Academy</span>
+            <Badge variant="blue" size="sm" dot>
+              Live Analytics
+            </Badge>
+            <span className="text-xs text-slate-400 capitalize">
+              Role: {role}
+            </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Welcome back, Counsellor!
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Welcome back, {displayName}!
           </h2>
-          <p className="text-sm text-slate-300 mt-1 max-w-xl">
-            Here is your daily admissions briefing. You have 3 urgent follow-ups scheduled for today.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
+            Here is your live admissions intelligence. All counts reconcile with your active database records under PostgreSQL Row Level Security.
           </p>
         </div>
+
         <Button
           variant="primary"
           leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsDemoModalOpen(true)}
-          className="shrink-0"
+          onClick={() => setIsAddLeadModalOpen(true)}
+          className="shrink-0 shadow-lg shadow-indigo-600/30"
         >
-          Quick Action
+          Add Enquiry
         </Button>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Failed to refresh KPI analytics</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {demoKpis.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <Card key={kpi.title} className="hover:border-slate-300 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {kpi.title}
-                </span>
-                <div className={`p-2 rounded-lg ${kpi.iconBg}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className={`text-2xl font-extrabold ${kpi.urgent ? 'text-rose-600' : 'text-slate-900'}`}>
-                  {kpi.value}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-emerald-500" />
-                {kpi.change}
-              </p>
-            </Card>
-          );
-        })}
-      </div>
+      {isLoading ? (
+        <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mx-auto mb-2" />
+          <p className="text-xs font-semibold text-slate-600">Reconciling live CRM metrics...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <KpiCard
+            title="Total Enquiries"
+            value={kpis.totalLeads}
+            subtitle="Accessible student records"
+            icon={Users}
+            iconBg="bg-indigo-50 text-indigo-600"
+          />
 
-      {/* Analytics & Pipeline Previews */}
+          <KpiCard
+            title="New Leads"
+            value={kpis.newLeads}
+            subtitle="Awaiting initial outreach"
+            icon={UserPlus}
+            iconBg="bg-blue-50 text-blue-600"
+          />
+
+          <KpiCard
+            title="Converted"
+            value={kpis.convertedLeads}
+            subtitle="Admitted students"
+            icon={CheckCircle2}
+            iconBg="bg-emerald-50 text-emerald-600"
+          />
+
+          <KpiCard
+            title="Overdue Follow-ups"
+            value={kpis.overdueFollowups}
+            subtitle={kpis.overdueFollowups > 0 ? 'Requires immediate action' : 'All callbacks current'}
+            icon={AlertCircle}
+            iconBg={kpis.overdueFollowups > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'}
+            urgent={kpis.overdueFollowups > 0}
+          />
+
+          <KpiCard
+            title="Conversion Rate"
+            value={`${kpis.conversionRate}%`}
+            subtitle="Admissions yield formula"
+            icon={Percent}
+            iconBg="bg-purple-50 text-purple-600"
+          />
+        </div>
+      )}
+
+      {/* Analytics & Pipeline Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Distribution */}
-        <Card
-          title="Lead Pipeline by Stage"
-          subtitle="Distribution of current enquiries"
-          headerAction={
-            <Link
-              to="/leads"
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-            >
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          }
-        >
-          <div className="space-y-3">
-            {[
-              { stage: 'New', count: 8, color: 'bg-blue-500', pct: '33%' },
-              { stage: 'Contacted', count: 5, color: 'bg-amber-500', pct: '21%' },
-              { stage: 'Qualified', count: 4, color: 'bg-purple-500', pct: '17%' },
-              { stage: 'Converted', count: 6, color: 'bg-emerald-500', pct: '25%' },
-              { stage: 'Lost', count: 1, color: 'bg-rose-500', pct: '4%' },
-            ].map((item) => (
-              <div key={item.stage}>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-700">{item.stage}</span>
-                  <span className="text-slate-500">{item.count} ({item.pct})</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className={`h-full ${item.color}`} style={{ width: item.pct }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <StatusDistribution
+          distribution={statusDistribution}
+          totalLeads={kpis.totalLeads}
+        />
 
-        {/* Source Breakdown */}
-        <Card
-          title="Top Acquisition Channels"
-          subtitle="Where student enquiries come from"
-        >
-          <div className="space-y-3">
-            {[
-              { source: 'Website Enquiries', count: 11, pct: '46%' },
-              { source: 'Walk-ins (Campus)', count: 6, pct: '25%' },
-              { source: 'Referrals (Alumni)', count: 4, pct: '17%' },
-              { source: 'Phone / Messaging', count: 3, pct: '12%' },
-            ].map((item) => (
-              <div key={item.source} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                <span className="text-xs font-medium text-slate-800">{item.source}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">{item.count}</span>
-                  <Badge size="sm" variant="slate">{item.pct}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <SourceDistribution
+          distribution={sourceDistribution}
+        />
 
-        {/* Urgent Follow-ups */}
-        <Card
-          title="Immediate Follow-ups"
-          subtitle="Scheduled callbacks for today"
-          headerAction={
-            <Link
-              to="/followups"
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-            >
-              All follow-ups <ArrowRight className="w-3 h-3" />
-            </Link>
-          }
-        >
-          <div className="space-y-3">
-            {[
-              { name: 'Aarav Sharma', course: 'JEE Advanced Batch', time: '10:30 AM', status: 'overdue' },
-              { name: 'Priya Patel', course: 'NEET FastTrack', time: '02:00 PM', status: 'pending' },
-              { name: 'Rahul Verma', course: 'Foundation Grade 10', time: '04:30 PM', status: 'pending' },
-            ].map((fu) => (
-              <div key={fu.name} className="p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors bg-white flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{fu.name}</p>
-                  <p className="text-xs text-slate-500">{fu.course} • {fu.time}</p>
-                </div>
-                <Badge
-                  size="sm"
-                  variant={fu.status === 'overdue' ? 'rose' : 'amber'}
-                  dot
-                >
-                  {fu.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <UrgentFollowupsWidget
+          followups={urgentFollowups}
+        />
       </div>
 
-      {/* Demo Modal test */}
-      <Modal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        title="Phase 1 Shell Component Test"
-        description="This modal tests keyboard trapping, backdrop blurring, and responsive dialog controls."
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsDemoModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={() => setIsDemoModalOpen(false)}>
-              Understood
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-slate-600">
-          You are viewing the working UI primitives for BrightPath CRM Phase 1. 
-          When we connect Supabase in Phase 2 & 5, this will trigger the real Lead Creation Form with full PostgreSQL persistence!
-        </p>
-      </Modal>
+      {/* Recent Leads Widget */}
+      <RecentLeadsWidget leads={recentLeads} />
+
+      {/* Add Lead Modal */}
+      <LeadModal
+        isOpen={isAddLeadModalOpen}
+        onClose={() => setIsAddLeadModalOpen(false)}
+        onSubmit={handleCreateLead}
+        staffProfiles={staffProfiles}
+      />
     </div>
   );
 };
