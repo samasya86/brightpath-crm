@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Database, AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileNav } from './MobileNav';
@@ -51,7 +51,7 @@ export const Layout: React.FC = () => {
     }
     return {
       title: 'BrightPath CRM',
-      subtitle: 'Coaching Institute Management System',
+      subtitle: 'Coaching Academy Management System',
     };
   };
 
@@ -61,19 +61,18 @@ export const Layout: React.FC = () => {
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:shrink-0">
-        <Sidebar currentRole="counsellor" />
+        <Sidebar />
       </div>
 
       {/* Mobile Drawer */}
       <MobileNav
         isOpen={isMobileNavOpen}
         onClose={() => setIsMobileNavOpen(false)}
-        currentRole="counsellor"
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Subtle Top Configuration Alert Strip (Non-intrusive) */}
+        {/* Subtle Top Configuration Alert Strip */}
         {!isSupabaseConfigured && (
           <div
             onClick={() => setIsConfigModalOpen(true)}
@@ -95,7 +94,6 @@ export const Layout: React.FC = () => {
           onOpenMobileNav={() => setIsMobileNavOpen(true)}
           title={meta.title}
           subtitle={meta.subtitle}
-          role="counsellor"
         />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 animate-in fade-in duration-200">

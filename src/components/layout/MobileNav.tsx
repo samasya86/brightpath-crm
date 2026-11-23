@@ -1,20 +1,19 @@
 import React, { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { X, GraduationCap, ShieldCheck } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { X, GraduationCap, LogOut } from 'lucide-react';
 import { navItems } from './Sidebar';
 import { Badge } from '../common/Badge';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface MobileNavProps {
   isOpen: boolean;
   onClose: () => void;
-  currentRole?: 'admin' | 'manager' | 'counsellor';
 }
 
-export const MobileNav: React.FC<MobileNavProps> = ({
-  isOpen,
-  onClose,
-  currentRole = 'counsellor',
-}) => {
+export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
+  const { user, profile, role, signOut } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -34,6 +33,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const handleSignOut = async () => {
+    onClose();
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Staff Member';
 
   return (
     <div
@@ -65,7 +76,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             aria-label="Close navigation"
           >
             <X className="w-5 h-5" />
@@ -103,20 +114,28 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50">
-            <ShieldCheck className="w-5 h-5 text-indigo-400" />
-            <div>
-              <p className="text-xs font-semibold text-slate-200">Session Role</p>
+        <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50">
+            <div className="min-w-0 mr-2">
+              <p className="text-xs font-semibold text-slate-200 truncate">{displayName}</p>
               <Badge
                 size="sm"
-                variant={currentRole === 'admin' ? 'purple' : currentRole === 'manager' ? 'blue' : 'green'}
+                variant={role === 'admin' ? 'purple' : role === 'manager' ? 'blue' : 'green'}
                 dot
-                className="mt-0.5"
+                className="mt-0.5 capitalize"
               >
-                {currentRole}
+                {role}
               </Badge>
             </div>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

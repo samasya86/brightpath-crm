@@ -1,11 +1,48 @@
-import React from 'react';
-import { Shield, User, Building, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, Check } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
 
 export const SettingsPage: React.FC = () => {
+  const { user, profile, role, refreshProfile } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !fullName.trim()) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      await authService.updateProfileName(user.id, fullName.trim());
+      await refreshProfile();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update profile name';
+      setSaveError(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Staff Member';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
@@ -19,35 +56,67 @@ export const SettingsPage: React.FC = () => {
 
       {/* User Profile Card */}
       <Card title="User Identity & Role">
-        <div className="space-y-4">
+        <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
             <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold text-base flex items-center justify-center">
-              SR
+              {initials}
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">Sunita Rao</p>
+              <p className="text-sm font-bold text-slate-900">{displayName}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <Badge variant="blue" size="sm" dot>
-                  Counsellor Role
+                <Badge
+                  variant={role === 'admin' ? 'purple' : role === 'manager' ? 'blue' : 'green'}
+                  size="sm"
+                  dot
+                  className="capitalize"
+                >
+                  {role} Role
                 </Badge>
                 <span className="text-xs text-slate-400">
-                  sunita.rao@brightpath.edu
+                  {user?.email || 'staff@brightpath.edu'}
                 </span>
               </div>
             </div>
           </div>
 
+          {saveSuccess && (
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Profile updated successfully!</span>
+            </div>
+          )}
+
+          {saveError && (
+            <p className="text-xs text-rose-600 font-medium">{saveError}</p>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Display Full Name" defaultValue="Sunita Rao" />
-            <Input label="Email Address" defaultValue="sunita.rao@brightpath.edu" disabled />
+            <Input
+              label="Display Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your full name"
+              required
+            />
+            <Input
+              label="Email Address"
+              value={user?.email || ''}
+              disabled
+              helperText="Managed via Supabase Authentication"
+            />
           </div>
 
           <div className="pt-2 flex justify-end">
-            <Button variant="primary" size="sm">
-              Save Changes
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              isLoading={isSaving}
+            >
+              Save Profile
             </Button>
           </div>
-        </div>
+        </form>
       </Card>
 
       {/* Academy Settings Card */}

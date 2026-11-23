@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -7,9 +7,10 @@ import {
   BarChart3,
   Settings,
   GraduationCap,
-  ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { useAuth } from '../../hooks/useAuth';
 
 export interface NavItem {
   name: string;
@@ -25,11 +26,21 @@ export const navItems: NavItem[] = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export interface SidebarProps {
-  currentRole?: 'admin' | 'manager' | 'counsellor';
-}
+export const Sidebar: React.FC = () => {
+  const { user, profile, role, signOut } = useAuth();
+  const navigate = useNavigate();
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentRole = 'counsellor' }) => {
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Staff Member';
+
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen select-none shrink-0">
       {/* Brand Header */}
@@ -85,25 +96,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole = 'counsellor' }) 
       </div>
 
       {/* Footer Role & Status */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-950/40">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50 border border-slate-800">
-          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">
-            <ShieldCheck className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="min-w-0 flex-1">
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/40 space-y-2">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50 border border-slate-800">
+          <div className="min-w-0 flex-1 mr-2">
             <p className="text-xs font-semibold text-slate-200 truncate">
-              Demo Session
+              {displayName}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Badge
                 size="sm"
-                variant={currentRole === 'admin' ? 'purple' : currentRole === 'manager' ? 'blue' : 'green'}
+                variant={role === 'admin' ? 'purple' : role === 'manager' ? 'blue' : 'green'}
                 dot
+                className="capitalize"
               >
-                {currentRole}
+                {role}
               </Badge>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>
