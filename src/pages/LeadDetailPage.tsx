@@ -26,6 +26,7 @@ import { ActivityTimeline } from '../features/activities/ActivityTimeline';
 import { leadsService, type UpdateLeadInput } from '../services/leadsService';
 import { useFollowups } from '../hooks/useFollowups';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import type { Lead, LeadStatus, Profile } from '../types';
 import type { CreateFollowupInput } from '../services/followupsService';
 
@@ -33,6 +34,7 @@ export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { showToast } = useToast();
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [staffProfiles, setStaffProfiles] = useState<Profile[]>([]);
@@ -91,9 +93,11 @@ export const LeadDetailPage: React.FC = () => {
     try {
       const updated = await leadsService.updateLeadStatus(lead.id, newStatus, null, lead.status);
       setLead(updated);
+      showToast('success', 'Status Updated', `Enquiry status updated to ${newStatus}.`);
     } catch (err: unknown) {
       console.error('Failed to update status:', err);
-      alert('Could not update status. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Could not update status';
+      showToast('error', 'Status Update Failed', msg);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -105,6 +109,10 @@ export const LeadDetailPage: React.FC = () => {
     try {
       const updated = await leadsService.updateLeadStatus(lead.id, 'Lost', reason, lead.status);
       setLead(updated);
+      showToast('warning', 'Lead Marked Lost', `Reason recorded: ${reason}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to mark as lost';
+      showToast('error', 'Update Failed', msg);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -112,13 +120,25 @@ export const LeadDetailPage: React.FC = () => {
 
   const handleEditLead = async (updates: UpdateLeadInput) => {
     if (!lead) return;
-    const updated = await leadsService.updateLead(lead.id, updates);
-    setLead(updated);
+    try {
+      const updated = await leadsService.updateLead(lead.id, updates);
+      setLead(updated);
+      showToast('success', 'Profile Updated', 'Student enquiry details have been updated.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update details';
+      showToast('error', 'Update Failed', msg);
+    }
   };
 
   const handleScheduleFollowup = async (input: CreateFollowupInput) => {
-    await scheduleFollowup(input);
-    refetchFollowups();
+    try {
+      await scheduleFollowup(input);
+      refetchFollowups();
+      showToast('success', 'Follow-up Scheduled', 'Callback reminder has been queued.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to schedule follow-up';
+      showToast('error', 'Schedule Failed', msg);
+    }
   };
 
   const handleReassign = async (newAssigneeId: string) => {
@@ -128,8 +148,11 @@ export const LeadDetailPage: React.FC = () => {
         assigned_to: newAssigneeId || null,
       });
       setLead(updated);
-    } catch (err) {
+      showToast('success', 'Ownership Updated', 'Assigned counsellor changed successfully.');
+    } catch (err: unknown) {
       console.error('Failed to reassign:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to assign counsellor';
+      showToast('error', 'Reassignment Failed', msg);
     }
   };
 
@@ -140,10 +163,31 @@ export const LeadDetailPage: React.FC = () => {
 
     try {
       await leadsService.deleteLead(lead.id);
+      showToast('info', 'Enquiry Deleted', `${lead.full_name} was removed from the database.`);
       navigate('/leads');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete lead';
-      alert(msg);
+      showToast('error', 'Delete Failed', msg);
+    }
+  };
+
+  const handleMarkComplete = async (followupId: string) => {
+    try {
+      await markCompleted(followupId);
+      showToast('success', 'Follow-up Completed', 'Interaction logged in the audit trail.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to complete follow-up';
+      showToast('error', 'Action Failed', msg);
+    }
+  };
+
+  const handleCancelFollowup = async (followupId: string) => {
+    try {
+      await cancelFollowup(followupId);
+      showToast('info', 'Follow-up Cancelled', 'Schedule cancelled.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to cancel follow-up';
+      showToast('error', 'Action Failed', msg);
     }
   };
 
@@ -413,8 +457,8 @@ export const LeadDetailPage: React.FC = () => {
                     key={fu.id}
                     followup={fu}
                     hideLeadLink
-                    onMarkComplete={markCompleted}
-                    onCancel={cancelFollowup}
+                    onMarkComplete={handleMarkComplete}
+                    onCancel={handleCancelFollowup}
                   />
                 ))}
               </div>

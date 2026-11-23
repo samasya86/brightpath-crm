@@ -3,10 +3,13 @@ import { Download, Info, Loader2, BarChart3 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
+import { CardSkeleton } from '../components/common/Skeleton';
 import { useMetrics } from '../hooks/useMetrics';
+import { useToast } from '../hooks/useToast';
 
 export const ReportsPage: React.FC = () => {
   const { kpis, statusDistribution, sourceDistribution, isLoading, error } = useMetrics();
+  const { showToast } = useToast();
 
   const handleExportCsv = () => {
     // Generate CSV content from live metrics
@@ -38,6 +41,7 @@ export const ReportsPage: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast('success', 'Report Exported', 'Admissions CSV summary downloaded successfully.');
   };
 
   return (
@@ -76,9 +80,9 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="p-16 text-center bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Calculating report reconciliations...</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CardSkeleton rows={5} />
+          <CardSkeleton rows={5} />
         </div>
       ) : error ? (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">

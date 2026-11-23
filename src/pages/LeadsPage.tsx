@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { Plus, Users, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
+import { TableSkeleton } from '../components/common/Skeleton';
 import { LeadFilterBar } from '../features/leads/LeadFilterBar';
 import { LeadTable } from '../features/leads/LeadTable';
 import { LeadCard } from '../features/leads/LeadCard';
 import { LeadModal } from '../features/leads/LeadModal';
 import { useLeads } from '../hooks/useLeads';
+import { useToast } from '../hooks/useToast';
 import type { CreateLeadInput } from '../services/leadsService';
 
 export const LeadsPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { showToast } = useToast();
 
   const {
     leads,
@@ -24,7 +27,13 @@ export const LeadsPage: React.FC = () => {
   } = useLeads();
 
   const handleCreateLead = async (input: CreateLeadInput) => {
-    await createLead(input);
+    try {
+      await createLead(input);
+      showToast('success', 'Enquiry Created', `${input.name} was successfully registered.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create enquiry';
+      showToast('error', 'Creation Failed', msg);
+    }
   };
 
   return (
@@ -76,11 +85,7 @@ export const LeadsPage: React.FC = () => {
 
       {/* Main Content Area: Loading vs Empty vs Data */}
       {isLoading ? (
-        <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Loading student pipeline...</p>
-          <p className="text-xs text-slate-400 mt-1">Retrieving records under active Row Level Security</p>
-        </div>
+        <TableSkeleton rows={6} columns={6} />
       ) : leads.length === 0 ? (
         <EmptyState
           title="No enquiries found"

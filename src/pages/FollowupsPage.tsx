@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Plus,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Inbox,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
+import { CardSkeleton } from '../components/common/Skeleton';
 import { FollowupCard } from '../features/followups/FollowupCard';
 import { FollowupModal } from '../features/followups/FollowupModal';
 import { useFollowups, type FollowupTab } from '../hooks/useFollowups';
+import { useToast } from '../hooks/useToast';
 import { leadsService } from '../services/leadsService';
 import type { Profile } from '../types';
 import type { CreateFollowupInput } from '../services/followupsService';
@@ -30,6 +29,7 @@ export const FollowupsPage: React.FC = () => {
     cancelFollowup,
   } = useFollowups();
 
+  const { showToast } = useToast();
   const [staffProfiles, setStaffProfiles] = useState<Profile[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -38,7 +38,33 @@ export const FollowupsPage: React.FC = () => {
   }, []);
 
   const handleCreate = async (input: CreateFollowupInput) => {
-    await scheduleFollowup(input);
+    try {
+      await scheduleFollowup(input);
+      showToast('success', 'Follow-up Scheduled', 'Callback has been successfully queued.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to schedule follow-up';
+      showToast('error', 'Scheduling Failed', msg);
+    }
+  };
+
+  const handleMarkComplete = async (id: string) => {
+    try {
+      await markCompleted(id);
+      showToast('success', 'Follow-up Completed', 'Interaction marked done.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to complete follow-up';
+      showToast('error', 'Action Failed', msg);
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    try {
+      await cancelFollowup(id);
+      showToast('info', 'Follow-up Cancelled', 'Schedule cancelled.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to cancel follow-up';
+      showToast('error', 'Action Failed', msg);
+    }
   };
 
   const tabs: { key: FollowupTab; label: string; count: number; badgeColor?: string }[] = [
@@ -121,9 +147,10 @@ export const FollowupsPage: React.FC = () => {
 
       {/* Main List */}
       {isLoading ? (
-        <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Loading follow-ups...</p>
+        <div className="space-y-3">
+          <CardSkeleton rows={2} />
+          <CardSkeleton rows={2} />
+          <CardSkeleton rows={2} />
         </div>
       ) : followups.length === 0 ? (
         <EmptyState
@@ -157,8 +184,8 @@ export const FollowupsPage: React.FC = () => {
             <FollowupCard
               key={item.id}
               followup={item}
-              onMarkComplete={markCompleted}
-              onCancel={cancelFollowup}
+              onMarkComplete={handleMarkComplete}
+              onCancel={handleCancel}
             />
           ))}
         </div>

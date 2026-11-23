@@ -16,22 +16,31 @@ import { SourceDistribution } from '../features/dashboard/SourceDistribution';
 import { RecentLeadsWidget } from '../features/dashboard/RecentLeadsWidget';
 import { UrgentFollowupsWidget } from '../features/dashboard/UrgentFollowupsWidget';
 import { LeadModal } from '../features/leads/LeadModal';
+import { CardSkeleton } from '../components/common/Skeleton';
 import { useMetrics } from '../hooks/useMetrics';
 import { useAuth } from '../hooks/useAuth';
 import { useLeads } from '../hooks/useLeads';
+import { useToast } from '../hooks/useToast';
 import type { CreateLeadInput } from '../services/leadsService';
 
 export const DashboardPage: React.FC = () => {
   const { kpis, statusDistribution, sourceDistribution, recentLeads, urgentFollowups, isLoading, error, refetch } = useMetrics();
   const { profile, user, role } = useAuth();
   const { staffProfiles, createLead } = useLeads();
+  const { showToast } = useToast();
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Counsellor';
 
   const handleCreateLead = async (input: CreateLeadInput) => {
-    await createLead(input);
-    refetch();
+    try {
+      await createLead(input);
+      refetch();
+      showToast('success', 'Enquiry Created', `${input.name} has been enrolled in the pipeline.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create enquiry';
+      showToast('error', 'Creation Failed', msg);
+    }
   };
 
   return (
@@ -78,9 +87,12 @@ export const DashboardPage: React.FC = () => {
 
       {/* KPI Cards Grid */}
       {isLoading ? (
-        <div className="p-12 text-center bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mx-auto mb-2" />
-          <p className="text-xs font-semibold text-slate-600">Reconciling live CRM metrics...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <CardSkeleton rows={1} />
+          <CardSkeleton rows={1} />
+          <CardSkeleton rows={1} />
+          <CardSkeleton rows={1} />
+          <CardSkeleton rows={1} />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

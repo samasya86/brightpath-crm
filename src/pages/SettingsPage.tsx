@@ -5,10 +5,12 @@ import { Badge } from '../components/common/Badge';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import { authService } from '../services/authService';
 
 export const SettingsPage: React.FC = () => {
   const { user, profile, role, refreshProfile } = useAuth();
+  const { showToast } = useToast();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -26,10 +28,12 @@ export const SettingsPage: React.FC = () => {
       await authService.updateProfileName(user.id, fullName.trim());
       await refreshProfile();
       setSaveSuccess(true);
+      showToast('success', 'Profile Updated', 'Your staff profile name has been updated.');
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update profile name';
       setSaveError(msg);
+      showToast('error', 'Update Failed', msg);
     } finally {
       setIsSaving(false);
     }
