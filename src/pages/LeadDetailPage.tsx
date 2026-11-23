@@ -5,26 +5,29 @@ import {
   Phone,
   Mail,
   BookOpen,
-  User,
-  Clock,
+  CalendarCheck,
   Edit,
   Trash2,
   AlertCircle,
   Loader2,
   AlertTriangle,
   UserCheck,
-  CheckCircle2,
+  Plus,
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
-import { Badge } from '../components/common/Badge';
 import { Select } from '../components/common/Select';
 import { LeadStatusBadge } from '../features/leads/LeadStatusBadge';
 import { LeadModal } from '../features/leads/LeadModal';
 import { LostReasonModal } from '../features/leads/LostReasonModal';
+import { FollowupModal } from '../features/followups/FollowupModal';
+import { FollowupCard } from '../features/followups/FollowupCard';
+import { ActivityTimeline } from '../features/activities/ActivityTimeline';
 import { leadsService, type UpdateLeadInput } from '../services/leadsService';
+import { useFollowups } from '../hooks/useFollowups';
 import { useAuth } from '../hooks/useAuth';
 import type { Lead, LeadStatus, Profile } from '../types';
+import type { CreateFollowupInput } from '../services/followupsService';
 
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +41,17 @@ export const LeadDetailPage: React.FC = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isLostModalOpen, setIsLostModalOpen] = useState(false);
+  const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Hook for follow-ups specific to this lead
+  const {
+    allFollowups,
+    scheduleFollowup,
+    markCompleted,
+    cancelFollowup,
+    refetch: refetchFollowups,
+  } = useFollowups(id);
 
   const loadLead = useCallback(async () => {
     if (!id) return;
@@ -101,6 +114,11 @@ export const LeadDetailPage: React.FC = () => {
     if (!lead) return;
     const updated = await leadsService.updateLead(lead.id, updates);
     setLead(updated);
+  };
+
+  const handleScheduleFollowup = async (input: CreateFollowupInput) => {
+    await scheduleFollowup(input);
+    refetchFollowups();
   };
 
   const handleReassign = async (newAssigneeId: string) => {
@@ -223,12 +241,20 @@ export const LeadDetailPage: React.FC = () => {
             </a>
           )}
           <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<CalendarCheck className="w-3.5 h-3.5" />}
+            onClick={() => setIsFollowupModalOpen(true)}
+          >
+            Follow-up
+          </Button>
+          <Button
             variant="primary"
             size="sm"
             leftIcon={<Edit className="w-3.5 h-3.5" />}
             onClick={() => setIsEditModalOpen(true)}
           >
-            Edit Details
+            Edit
           </Button>
         </div>
       </div>
@@ -358,61 +384,49 @@ export const LeadDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Columns: Follow-ups Queue & Activity Timeline Preview */}
+        {/* Right Columns: Follow-ups Queue & Activity Timeline */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Follow-ups Card */}
           <Card
             title="Scheduled Interactions & Follow-ups"
-            subtitle="Scheduled interactions for this student"
+            subtitle="Pending callbacks and scheduled counselling meetings"
             headerAction={
-              <Link to="/followups">
-                <Button variant="outline" size="sm">
-                  Manage in Follow-ups
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() => setIsFollowupModalOpen(true)}
+              >
+                Add Follow-up
+              </Button>
             }
           >
-            <div className="p-6 text-center text-xs text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-              <Clock className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-              <p className="font-semibold text-slate-700">Follow-up Engine (Phase 6)</p>
-              <p className="mt-0.5">
-                Full callback scheduling, date/time picker, and overdue detection will connect in the next phase!
-              </p>
-            </div>
+            {allFollowups.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <p className="font-semibold text-slate-700">No follow-ups scheduled yet.</p>
+                <p className="mt-0.5">Click "Add Follow-up" above to plan a callback.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {allFollowups.map((fu) => (
+                  <FollowupCard
+                    key={fu.id}
+                    followup={fu}
+                    hideLeadLink
+                    onMarkComplete={markCompleted}
+                    onCancel={cancelFollowup}
+                  />
+                ))}
+              </div>
+            )}
           </Card>
 
+          {/* Activity Audit Timeline */}
           <Card
-            title="Activity Audit Log"
-            subtitle="Timeline of lead creation and status changes"
+            title="Activity Audit Timeline"
+            subtitle="Complete lifecycle events, status changes, and staff interaction notes"
           >
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">
-                    Lead Status: <span className="font-bold">{lead.status}</span>
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Current stage in the admissions pipeline
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">
-                    Enquiry Registered
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Source: {lead.source} • Created on {new Date(lead.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <ActivityTimeline leadId={lead.id} />
           </Card>
         </div>
       </div>
@@ -423,6 +437,15 @@ export const LeadDetailPage: React.FC = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleEditLead}
         initialData={lead}
+        staffProfiles={staffProfiles}
+      />
+
+      {/* Schedule Follow-up Modal */}
+      <FollowupModal
+        isOpen={isFollowupModalOpen}
+        onClose={() => setIsFollowupModalOpen(false)}
+        onSubmit={handleScheduleFollowup}
+        preselectedLead={lead}
         staffProfiles={staffProfiles}
       />
 
